@@ -10,7 +10,8 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:exportproject.helloWorld"
+		"onCommand:exportproject.helloWorld",
+		"onCommand:exportproject.exportToTXT"
 	],
 	"main": "./out/exportproject.js",
 	"contributes": {
