@@ -26,7 +26,9 @@ function helloWorld() {
 	vscode.window.showInformationMessage('Hello World!');
 }
 
-const sourceFiles: string[] = ['txt', 'java', 'ini', 'bat', 'gitignore'];
+const sourceFiles: string[] = ['txt', 'java', 'ini', 'bat', 'cmd', 'gitignore', 'py', 'cpp', 'h', 'hpp', 'xml', 'md', 'json', 'csv', 'html'];
+
+let filesExported: number = 0;
 
 function writeAllToFileType(basepath: string, prjpath: string,
 	fileType: {
@@ -36,6 +38,9 @@ function writeAllToFileType(basepath: string, prjpath: string,
 		writeToFile(filename: string): void
 	}, filename: string) {
 	let files: string[] = [];
+	if (basepath === '') {
+		filesExported = 0;
+	}
 	fs.readdirSync(join(prjpath, basepath)).forEach(element => {
 		try {
 			var stats = fs.lstatSync(join(prjpath, basepath, element));
@@ -56,17 +61,17 @@ function writeAllToFileType(basepath: string, prjpath: string,
 			}
 		}
 	});
-	let is_first = true;
 	files.forEach(element => {
-		if (is_first) {
-			is_first = false;
-		} else {
+		if (filesExported !== 0) {
 			fileType.nextFile();
 		}
+		filesExported++;
 		fileType.addHeader(join(basepath, element));
 		fileType.addBody(fs.readFileSync(join(prjpath, basepath, element)).toString());
 	});
-	fileType.writeToFile(filename);
+	if (basepath === '') {
+		fileType.writeToFile(filename);
+	}
 }
 
 function writeAllToTXT(prjpath: string, filename: string = output_name) {
@@ -91,7 +96,7 @@ function writeAllToHTML(prjpath: string, filename: string = output_name) {
 	let buf: string[] = [];
 	writeAllToFileType('', prjpath, new class {
 		public addHeader(header: string) {
-			buf.push('<h3>----------------------------' + header + '----------------------------</h3><br>\n\r');
+			buf.push('<h2 style="color: blue">----------------------------' + header + '----------------------------</h2><br>\n\r');
 		}
 		public addBody(body: string) {
 			buf.push('<pre>', body, '</pre>');
@@ -110,7 +115,7 @@ function writeAllToPDF(prjpath: string, filename: string = output_name) {
 	doc.pipe(fs.createWriteStream(join(prjpath, filename + '.pdf')));
 	writeAllToFileType('', prjpath, new class {
 		public addHeader(header: string) {
-			doc.save().fontSize(17).fillColor('blue').text(header, {align: 'center'});
+			doc.fontSize(17).fillColor('blue').text(header, {align: 'center'});
 		}
 		public addBody(body: string) {
 			doc.fontSize(10).font(join('C:', 'Windows', 'Fonts', 'consola.ttf')).fillColor('black').text(body.replace(/\t/g, '    ').replace(/\r/g, ''));
