@@ -11,7 +11,9 @@
 	],
 	"activationEvents": [
 		"onCommand:exportproject.helloWorld",
-		"onCommand:exportproject.exportToTXT"
+		"onCommand:exportproject.exportToTXT",
+		"onCommand:exportproject.exportToHTML",
+		"onCommand:exportproject.exportToPDF"
 	],
 	"main": "./out/exportproject.js",
 	"contributes": {
@@ -23,6 +25,14 @@
 			{
 				"command": "exportproject.exportToTXT",
 				"title": "Export project to .txt format"
+			},
+			{
+				"command": "exportproject.exportToHTML",
+				"title": "Export project to .html format"
+			},
+			{
+				"command": "exportproject.exportToPDF",
+				"title": "Export project to .pdf format"
 			}
 		]
 	},
@@ -36,12 +46,20 @@
 	"devDependencies": {
 		"@types/glob": "^7.1.1",
 		"@types/mocha": "^5.2.7",
-		"@types/node": "^12.11.7",
+		"@types/node": "^12.12.17",
 		"@types/vscode": "^1.40.0",
 		"glob": "^7.1.5",
 		"mocha": "^6.2.2",
-		"typescript": "^3.6.4",
 		"tslint": "^5.20.0",
+		"typescript": "^3.6.4",
 		"vscode-test": "^1.2.2"
+	},
+	"dependencies": {
+		"@types/jspdf": "^1.3.3",
+		"@types/pdfkit": "^0.10.4",
+		"@types/pdfmake": "^0.1.8",
+		"jspdf": "^1.5.3",
+		"pdfkit": "^0.11.0",
+		"pdfmake": "^0.1.62"
 	}
 }
