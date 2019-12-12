@@ -9,63 +9,42 @@ const output_name = 'export_output';
 
 function helloWorld() {
 	if (vscode.workspace.workspaceFolders !== undefined) {
-
-		// The code you place here will be executed every time your command is executed
 		console.log('project root =', vscode.workspace.workspaceFolders[0]);
 		if (vscode.workspace.workspaceFolders.length > 1) {
 			let str: string = '';
 			vscode.workspace.workspaceFolders.forEach(element => {
 				str += element.name + ', ';
 			});
-			vscode.window.showWarningMessage('Workspace had more than one folder: ', str.substr(0, str.length - 2));
-
+			vscode.window.showWarningMessage('Workspace had more than one folder: ', str.slice(0, str.length - 2));
 		}
 	}
-
-	// Display a message box to the user
 	vscode.window.showInformationMessage('Hello World!');
 }
 
 const sourceFiles: string[] = ['txt', 'java', 'ini', 'bat', 'cmd', 'gitignore', 'py', 'cpp', 'h', 'hpp', 'xml', 'md', 'json', 'csv', 'html'];
 
-let filesExported: number = 0;
-
 function writeAllToFileType(basepath: string, prjpath: string,
 	fileType: {
 		addHeader(header: string): void,
 		addBody(body: string): void,
-		nextFile(): void,
 		writeToFile(filename: string): void
 	}, filename: string) {
 	let files: string[] = [];
-	if (basepath === '') {
-		filesExported = 0;
-	}
 	fs.readdirSync(join(prjpath, basepath)).forEach(element => {
-		try {
-			var stats = fs.lstatSync(join(prjpath, basepath, element));
-		} catch (ex) {
-			console.warn("Cannot get lstats of", element);
-			return;
-		}
-		if (stats.isDirectory()) {
+		if (fs.lstatSync(join(prjpath, basepath, element)).isDirectory()) {
 			writeAllToFileType(join(basepath, element), prjpath, fileType, filename);
 		} else {
-			// console.log(element.slice(0, element.lastIndexOf('.')) + ' === ' + output_name.slice(0, output_name.lastIndexOf('.')));
-			if (!(basepath === '' && element.slice(0, element.lastIndexOf('.')) === output_name)) {
-				if (sourceFiles.includes(element.slice(element.lastIndexOf('.') + 1, element.length))) {
-					files.push(element);
-				} else {
-					console.log('ignoring non-source-code file:', join(basepath, element));
-				}
+			if (element.slice(0, element.lastIndexOf('.')) === filename) {
+				return; // continue
+			}
+			if (sourceFiles.includes(element.slice(element.lastIndexOf('.') + 1, element.length))) {
+				files.push(element);
+			} else {
+				console.log('ignoring non-source-code file:', join(basepath, element));
 			}
 		}
 	});
 	files.forEach(element => {
-		if (filesExported !== 0) {
-			fileType.nextFile();
-		}
-		filesExported++;
 		fileType.addHeader(join(basepath, element));
 		fileType.addBody(fs.readFileSync(join(prjpath, basepath, element)).toString());
 	});
@@ -76,15 +55,17 @@ function writeAllToFileType(basepath: string, prjpath: string,
 
 function writeAllToTXT(prjpath: string, filename: string = output_name) {
 	let buf: string[] = [];
+	let numberExported = 0;
 	writeAllToFileType('', prjpath, new class {
 		public addHeader(header: string) {
-			buf.push('----------------------------' + header + '----------------------------\n\r');
+			if (numberExported !== 0) {
+				buf.push('\n\r\n\r');
+			}
+			numberExported++;
+			buf.push('---------------------------- ', header, ' ----------------------------\n\r');
 		}
 		public addBody(body: string) {
 			buf.push(body);
-		}
-		public nextFile() {
-			buf.push('\n\r\n\r');
 		}
 		public writeToFile(filename: string) {
 			fs.writeFileSync(join(prjpath, filename + '.txt'), buf.join(''));
@@ -94,15 +75,17 @@ function writeAllToTXT(prjpath: string, filename: string = output_name) {
 
 function writeAllToHTML(prjpath: string, filename: string = output_name) {
 	let buf: string[] = [];
+	let numberExported = 0;
 	writeAllToFileType('', prjpath, new class {
 		public addHeader(header: string) {
-			buf.push('<h2 style="color: blue">----------------------------' + header + '----------------------------</h2><br>\n\r');
+			if (numberExported !== 0) {
+				buf.push('<br><br>\n\r\n\r');
+			}
+			numberExported++;
+			buf.push('<h2 style="color: blue">---------------------------- ', header, ' ----------------------------</h2><br>\n\r');
 		}
 		public addBody(body: string) {
 			buf.push('<pre>', body, '</pre>');
-		}
-		public nextFile() {
-			buf.push('<br><br>\n\r\n\r');
 		}
 		public writeToFile(filename: string) {
 			fs.writeFileSync(join(prjpath, filename + '.html'), buf.join(''));
@@ -112,16 +95,17 @@ function writeAllToHTML(prjpath: string, filename: string = output_name) {
 
 function writeAllToPDF(prjpath: string, filename: string = output_name) {
 	let doc = new pdf;
+	let numberExported = 0;
 	doc.pipe(fs.createWriteStream(join(prjpath, filename + '.pdf')));
 	writeAllToFileType('', prjpath, new class {
 		public addHeader(header: string) {
-			doc.fontSize(17).fillColor('blue').text(header, {align: 'center'});
+			if (numberExported !== 0) {
+				doc.addPage();
+			}
+			doc.fontSize(17).fillColor('blue').text(header, { align: 'center' });
 		}
 		public addBody(body: string) {
 			doc.fontSize(10).font(join('C:', 'Windows', 'Fonts', 'consola.ttf')).fillColor('black').text(body.replace(/\t/g, '    ').replace(/\r/g, ''));
-		}
-		public nextFile() {
-			doc.addPage();
 		}
 		public writeToFile(filename: string) {
 			doc.end();
@@ -130,16 +114,13 @@ function writeAllToPDF(prjpath: string, filename: string = output_name) {
 }
 
 function exportproject(format: string = 'txt') {
-	let fd: number = -1;
 	try {
-		let prj_root: string;
 		if (vscode.workspace.workspaceFolders !== undefined) {
-			prj_root = vscode.workspace.workspaceFolders[0].uri.fsPath;
+			var prj_root: string = vscode.workspace.workspaceFolders[0].uri.fsPath;
 		} else {
 			vscode.window.showErrorMessage('Cannot identify workspace directory');
 			return;
 		}
-		fd = fs.openSync(join(prj_root, output_name + '.' + format), 'w');
 		switch (format) {
 			case 'txt':
 				writeAllToTXT(prj_root);
@@ -157,10 +138,7 @@ function exportproject(format: string = 'txt') {
 	} catch (ex) {
 		vscode.window.showErrorMessage('Export has failed');
 		console.error(ex);
-	} finally {
-		if (fd !== -1) {
-			fs.closeSync(fd);
-		}
+		return;
 	}
 	vscode.window.showInformationMessage('Finished export to ' + format);
 }
