@@ -56,6 +56,6 @@
 	},
 	"dependencies": {
 		"@types/pdfkit": "^0.10.4",
-		"pdfkit": "^0.11.0"
+		"pdfkit": "^0.13.0"
 	}
 }
